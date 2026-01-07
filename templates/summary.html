@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Project Expense Summary</title>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="container-fluid">
+  <div class="row">
+
+    <!-- Sidebar -->
+    <div class="col-md-2 sidebar p-3">
+      <h4 class="text-white">🏗️ BuildTrack</h4>
+      <hr class="text-secondary">
+
+      <a href="/ui" class="nav-link">
+        <i class="bi bi-speedometer2"></i> Dashboard
+      </a>
+      <a href="/ui/add-project" class="nav-link">
+        <i class="bi bi-building"></i> Add Project
+      </a>
+      <a href="/ui/add-material" class="nav-link">
+        <i class="bi bi-box-seam"></i> Add Material
+      </a>
+      <a href="/ui/add-labour" class="nav-link">
+        <i class="bi bi-people"></i> Add Labour
+      </a>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-10 p-5 bg-light min-vh-100">
+
+      <!-- Header -->
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>Project Expense Summary</h3>
+        <a href="/ui" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+      </div>
+
+      <!-- Summary Cards -->
+      <div class="row mb-4">
+
+        <div class="col-md-4">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="me-3 text-primary fs-3">
+                  <i class="bi bi-box-seam"></i>
+                </div>
+                <div>
+                  <h6 class="text-muted mb-1">Material Cost</h6>
+                  <h4 id="materialCost">₹0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card shadow-sm border-0">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="me-3 text-success fs-3">
+                  <i class="bi bi-people"></i>
+                </div>
+                <div>
+                  <h6 class="text-muted mb-1">Labour Cost</h6>
+                  <h4 id="labourCost">₹0</h4>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-4">
+          <div class="card shadow-sm border-0 bg-primary text-white">
+            <div class="card-body">
+              <div class="d-flex align-items-center">
+                <div class="me-3 fs-3">
+                  <i class="bi bi-cash-stack"></i>
+                </div>
+                <div>
+                  <h6 class="mb-1">Total Expense</h6>
+                  <h3 id="totalExpense">₹0</h3>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Info Section -->
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h5 class="mb-2">Summary Overview</h5>
+          <p class="text-muted mb-0">
+            This section shows the total expenses incurred for the selected project,
+            including material purchases and labour payments.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const projectId = {{ project_id | tojson }};
+
+  fetch(`/projects/${projectId}/summary`)
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("materialCost").innerText = "₹" + data.material_cost;
+      document.getElementById("labourCost").innerText = "₹" + data.labour_cost;
+      document.getElementById("totalExpense").innerText = "₹" + data.total_expense;
+    });
+</script>
+
+</body>
+</html>
