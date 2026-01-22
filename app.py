@@ -4,6 +4,7 @@ from routes.material_routes import material_bp
 from routes.labour_routes import labour_bp
 from routes.ui_routes import ui_bp
 from routes.auth_routes import auth_bp
+from flask import redirect
 
 app = Flask(__name__)
 
@@ -18,7 +19,7 @@ app.register_blueprint(auth_bp)
 
 @app.route("/")
 def home():
-    return {"message": "BuildTrack API running (MongoDB + Auth)"}
+    return redirect("/ui/login")
 
 if __name__ == "__main__":
     app.run(debug=True)

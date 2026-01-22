@@ -20,6 +20,12 @@
     <!-- Sidebar -->
     <div class="col-md-2 sidebar p-3">
       <h4 class="text-white">🏗️ BuildTrack</h4>
+
+      <!-- ✅ ADDED: Logged in user -->
+      <p class="text-white small mb-2">
+        Logged in as: <strong>{{ user_name }}</strong>
+      </p>
+
       <hr class="text-secondary">
 
       <a href="/ui" class="nav-link">
@@ -34,6 +40,12 @@
       <a href="/ui/add-labour" class="nav-link">
         <i class="bi bi-people"></i> Add Labour
       </a>
+
+      <!-- ✅ ADDED: Logout button -->
+      <hr class="text-secondary">
+      <button class="btn btn-outline-light w-100 mt-2" onclick="logout()">
+        <i class="bi bi-box-arrow-right"></i> Logout
+      </button>
     </div>
 
     <!-- Main Content -->
@@ -125,6 +137,12 @@
       document.getElementById("labourCost").innerText = "₹" + data.labour_cost;
       document.getElementById("totalExpense").innerText = "₹" + data.total_expense;
     });
+
+  /* ✅ ADDED: logout logic */
+  function logout() {
+    fetch("/auth/logout", { method: "POST" })
+      .then(() => window.location.href = "/ui/login");
+  }
 </script>
 
 </body>
