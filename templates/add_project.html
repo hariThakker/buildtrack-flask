@@ -12,11 +12,12 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
 
 <div class="container-fluid">
   <div class="row">
-    
+
     <!-- Sidebar -->
     <div class="col-md-2 sidebar p-3">
       <h4 class="text-white">🏗️ BuildTrack</h4>
@@ -37,41 +38,47 @@
 
     <!-- Main Content -->
     <div class="col-md-10 p-5 bg-light min-vh-100">
-      
+
       <h3 class="mb-4">Add New Project</h3>
 
       <div class="card shadow-sm">
         <div class="card-body">
 
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Project Name</label>
-              <input id="name" class="form-control" placeholder="Apartment Site A">
+          <!-- FORM START -->
+          <form id="projectForm">
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Project Name</label>
+                <input id="project_name" class="form-control" placeholder="Apartment Site A" required>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Client Name</label>
+                <input id="project_client" class="form-control" placeholder="Mr. Sharma" required>
+              </div>
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Client Name</label>
-              <input id="client" class="form-control" placeholder="Mr. Sharma">
-            </div>
-          </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Location</label>
+                <input id="project_location" class="form-control" placeholder="Mumbai" required>
+              </div>
 
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Location</label>
-              <input id="location" class="form-control" placeholder="Mumbai">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Start Date</label>
+                <input id="project_start_date" type="date" class="form-control" required>
+              </div>
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Start Date</label>
-              <input id="start_date" type="date" class="form-control">
+            <div class="text-end">
+              <button type="submit" class="btn btn-primary px-4">
+                <i class="bi bi-save"></i> Save Project
+              </button>
             </div>
-          </div>
 
-          <div class="text-end">
-            <button class="btn btn-primary px-4" onclick="addProject()">
-              <i class="bi bi-save"></i> Save Project
-            </button>
-          </div>
+          </form>
+          <!-- FORM END -->
 
         </div>
       </div>
@@ -81,21 +88,49 @@
 </div>
 
 <script>
-function addProject() {
+document.getElementById("projectForm").addEventListener("submit", function (e) {
+  e.preventDefault(); // stop normal form submit
+
+  const nameVal = document.getElementById("project_name").value.trim();
+  const clientVal = document.getElementById("project_client").value.trim();
+  const locationVal = document.getElementById("project_location").value.trim();
+  const startDateVal = document.getElementById("project_start_date").value;
+
+  // Debug log (keep for now)
+  console.log({
+    name: nameVal,
+    client: clientVal,
+    location: locationVal,
+    start_date: startDateVal
+  });
+
+  if (!nameVal || !clientVal || !locationVal || !startDateVal) {
+    alert("Please fill all fields");
+    return;
+  }
+
   fetch("/projects", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      name: name.value,
-      client: client.value,
-      location: location.value,
-      start_date: start_date.value
+      name: nameVal,
+      client: clientVal,
+      location: locationVal,
+      start_date: startDateVal
     })
-  }).then(() => {
-    alert("Project added successfully");
+  })
+  .then(res => {
+    if (!res.ok) throw new Error("Failed to add project");
+    return res.json();
+  })
+  .then(() => {
     window.location.href = "/ui";
+  })
+  .catch(err => {
+    alert("Error adding project");
+    console.error(err);
   });
-}
+});
 </script>
 
 </body>

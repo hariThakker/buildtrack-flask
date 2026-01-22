@@ -1,34 +1,48 @@
 from flask import Blueprint, request, jsonify
-from database.db import db
-from models.material import Material
+from database.mongo import materials_collection, projects_collection
+from models.material import material_schema
+from bson import ObjectId
+from utils.auth import role_required
 
 material_bp = Blueprint("material_bp", __name__, url_prefix="/materials")
 
-# ADD material expense
+# =========================
+# ADD MATERIAL (ADMIN + MANAGER) ✅ 8.8
+# =========================
 @material_bp.route("", methods=["POST"])
+@role_required("admin", "manager")
 def add_material():
-    data = request.json
+    data = request.get_json()
 
-    material = Material(
-        project_id=data.get("project_id"),
-        name=data.get("name"),
-        quantity=data.get("quantity"),
-        cost=data.get("cost"),
-        date=data.get("date")
-    )
-    
-@material_bp.route("/<int:material_id>", methods=["DELETE"])
+    required = ["project_id", "name", "quantity", "cost", "date"]
+    if not data or not all(data.get(f) for f in required):
+        return jsonify({"message": "All fields required"}), 400
+
+    if not ObjectId.is_valid(data["project_id"]):
+        return jsonify({"message": "Invalid project ID"}), 400
+
+    if not projects_collection.find_one(
+        {"_id": ObjectId(data["project_id"])}
+    ):
+        return jsonify({"message": "Project not found"}), 404
+
+    material = material_schema(data)
+    materials_collection.insert_one(material)
+
+    return jsonify({"message": "Material added successfully"}), 201
+
+
+# =========================
+# DELETE MATERIAL (ADMIN ONLY)
+# =========================
+@material_bp.route("/<material_id>", methods=["DELETE"])
+@role_required("admin")
 def delete_material(material_id):
-    material = Material.query.get(material_id)
-    if not material:
-        return {"message": "Material not found"}, 404
+    if not ObjectId.is_valid(material_id):
+        return jsonify({"message": "Invalid material ID"}), 400
 
-    db.session.delete(material)
-    db.session.commit()
-    return {"message": "Material deleted successfully"}, 200
+    materials_collection.delete_one(
+        {"_id": ObjectId(material_id)}
+    )
 
-
-    db.session.add(material)
-    db.session.commit()
-
-    return jsonify({"message": "Material expense added"}), 201
+    return jsonify({"message": "Material deleted"}), 200

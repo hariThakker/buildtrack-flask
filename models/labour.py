@@ -1,8 +1,7 @@
-from database.db import db
-
-class Labour(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    project_id = db.Column(db.Integer, nullable=False)
-    worker_name = db.Column(db.String(100))
-    wage = db.Column(db.Float)
-    date = db.Column(db.String(20))
+def labour_schema(data):
+    return {
+        "project_id": data["project_id"],  # string ObjectId
+        "worker_name": data["worker_name"],
+        "wage": float(data["wage"]),
+        "date": data["date"]
+    }

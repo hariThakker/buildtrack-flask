@@ -1,72 +1,95 @@
 from flask import Blueprint, request, jsonify
-from database.db import db
-from models.project import Project
-from models.material import Material
-from models.labour import Labour
-from sqlalchemy import func 
+from database.mongo import (
+    projects_collection,
+    materials_collection,
+    labour_collection
+)
+from bson import ObjectId
+from models.project import project_schema
+from utils.auth import role_required
 
 project_bp = Blueprint("project_bp", __name__, url_prefix="/projects")
 
-# CREATE project
+# =========================
+# CREATE PROJECT (ADMIN + MANAGER)
+# =========================
 @project_bp.route("", methods=["POST"])
+@role_required("admin", "manager")
 def create_project():
-    data = request.json
+    data = request.get_json()
 
-    project = Project(
-        name=data.get("name"),
-        client=data.get("client"),
-        location=data.get("location"),
-        start_date=data.get("start_date")
-    )
+    required = ["name", "client", "location", "start_date"]
+    if not data or not all(data.get(f) for f in required):
+        return jsonify({"message": "All fields are required"}), 400
 
-    db.session.add(project)
-    db.session.commit()
-
-    return jsonify({"message": "Project created", "project_id": project.id}), 201
-
-# PROJECT EXPENSE SUMMARY
-@project_bp.route("/<int:project_id>/summary", methods=["GET"])
-def project_summary(project_id):
-    material_total = db.session.query(
-        func.sum(Material.cost)
-    ).filter(Material.project_id == project_id).scalar() or 0
-
-    labour_total = db.session.query(
-        func.sum(Labour.wage)
-    ).filter(Labour.project_id == project_id).scalar() or 0
+    project = project_schema(data)
+    result = projects_collection.insert_one(project)
 
     return jsonify({
-        "project_id": project_id,
-        "material_cost": material_total,
-        "labour_cost": labour_total,
-        "total_expense": material_total + labour_total
-    })
-
-@project_bp.route("/<int:project_id>", methods=["DELETE"])
-def delete_project(project_id):
-    project = Project.query.get(project_id)
-    if not project:
-        return {"message": "Project not found"}, 404
-
-    db.session.delete(project)
-    db.session.commit()
-    return {"message": "Project deleted successfully"}, 200
+        "message": "Project created",
+        "project_id": str(result.inserted_id)
+    }), 201
 
 
-# GET all projects
+# =========================
+# GET ALL PROJECTS (ALL ROLES)
+# =========================
 @project_bp.route("", methods=["GET"])
 def get_projects():
-    projects = Project.query.all()
+    projects = []
 
-    result = []
-    for p in projects:
-        result.append({
-            "id": p.id,
-            "name": p.name,
-            "client": p.client,
-            "location": p.location,
-            "start_date": p.start_date,
-            "is_active": p.is_active
-        })
+    for p in projects_collection.find():
+        p["_id"] = str(p["_id"])
+        projects.append(p)
 
-    return jsonify(result)
+    return jsonify(projects), 200
+
+
+# =========================
+# PROJECT SUMMARY (ALL ROLES)
+# =========================
+@project_bp.route("/<project_id>/summary", methods=["GET"])
+def project_summary(project_id):
+    if not ObjectId.is_valid(project_id):
+        return jsonify({"message": "Invalid project ID"}), 400
+
+    material_cursor = materials_collection.aggregate([
+        {"$match": {"project_id": project_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$cost"}}}
+    ])
+
+    labour_cursor = labour_collection.aggregate([
+        {"$match": {"project_id": project_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$wage"}}}
+    ])
+
+    material_cost = next(material_cursor, {}).get("total", 0)
+    labour_cost = next(labour_cursor, {}).get("total", 0)
+
+    return jsonify({
+        "material_cost": material_cost,
+        "labour_cost": labour_cost,
+        "total_expense": material_cost + labour_cost
+    }), 200
+
+
+# =========================
+# DELETE PROJECT (ADMIN ONLY) ✅ 8.7
+# =========================
+@project_bp.route("/<project_id>", methods=["DELETE"])
+@role_required("admin")
+def delete_project(project_id):
+    if not ObjectId.is_valid(project_id):
+        return jsonify({"message": "Invalid project ID"}), 400
+
+    result = projects_collection.delete_one(
+        {"_id": ObjectId(project_id)}
+    )
+
+    if result.deleted_count == 0:
+        return jsonify({"message": "Project not found"}), 404
+
+    materials_collection.delete_many({"project_id": project_id})
+    labour_collection.delete_many({"project_id": project_id})
+
+    return jsonify({"message": "Project deleted successfully"}), 200
